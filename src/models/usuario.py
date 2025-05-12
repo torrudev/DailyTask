@@ -11,7 +11,6 @@ class Usuario:
     def __init__(self, id, nombre):
         self.id = id
         self.nombre = nombre
-        self.tareas = []
     
     # Método de clase para crear un nuevo usuario comprobando si el nombre ya existe
     @classmethod
