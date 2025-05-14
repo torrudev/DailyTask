@@ -5,6 +5,7 @@
 import os, csv
 
 ARCHIVO_USUARIOS = "data/usuarios.csv"
+ARCHIVO_TAREAS = "data/tareas.csv"
 
 # Esta función obtiene el último ID de usuario, devuelve None si el usuario ya existe
 def obtener_ultimo_id_usuario(nombre_usuario):
@@ -65,3 +66,24 @@ def obtener_usuarios():
                 continue
 
     return usuarios
+
+# Esta función obtiene el último ID de de tarea
+def obtener_ultimo_id_tarea():
+    ultimo_id = 0
+
+    # Verifica si el archivo de tareas existe y no está vacío
+    if (not os.path.isfile(ARCHIVO_TAREAS) or os.path.getsize(ARCHIVO_TAREAS) == 0):
+        return ultimo_id
+    
+    # Lee el archivo CSV y buscar el último ID de tarea
+    with open(ARCHIVO_TAREAS, mode="r", newline='', encoding="utf-8") as archivo:
+        lector = csv.DictReader(archivo)
+        for fila in lector:
+            try:
+                id_actual = int(fila["id"])
+                if id_actual > ultimo_id:
+                    ultimo_id = id_actual
+            except (KeyError, ValueError):
+                continue
+
+    return ultimo_id

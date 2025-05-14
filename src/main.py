@@ -6,6 +6,7 @@ from models.usuario import Usuario
 from models.tarea import Tarea
 import storage.csv_reader as lector_csv
 import storage.csv_writer as escritor_csv
+import os, time
 
 # Función para imprimir el menú principal
 def mostrar_menu_principal():
@@ -18,10 +19,13 @@ def mostrar_menu_principal():
 
 # Función para imprimir el menú de usuario tras iniciar sesión, necesita un objeto de la clase Usuario
 def menu_usuario(usuario: Usuario):
+    limpiar_pantalla()
+
     while True:
         print(f"\n👤 Sesión iniciada como: {usuario.nombre} (ID: {usuario.id})")
         print("1. Ver perfil")
         print("2. Crear tarea")
+        print("3. Ver tareas")
         print("4. Cerrar sesión")
 
         opcion = input("Selecciona una opción (1-4): ").strip()
@@ -38,7 +42,12 @@ def menu_usuario(usuario: Usuario):
                 # Solicitar datos de la tarea y crear una instancia de Tarea
                 titulo = input("Introduce el título de la tarea: ")
                 descripcion = input("Introduce una descripción de la tarea: ")
-                tarea_nueva = Tarea(titulo, usuario.id, descripcion)
+
+                repeticion = input("Introduce la repetición de la tarea (diaria, semanal, mensual, unica): ")
+                if repeticion not in ["diaria", "semanal", "mensual", "unica"]:
+                    raise ValueError("Repetición no válida. Debe ser 'diaria', 'semanal', 'mensual' o 'unica'.")
+                
+                tarea_nueva = Tarea(titulo, usuario.id, descripcion, repeticion=repeticion)
 
                 # Guardar la tarea nueva en el archivo CSV
                 escritor_csv.guardar_tarea(tarea_nueva)
@@ -47,12 +56,21 @@ def menu_usuario(usuario: Usuario):
             except ValueError as e:
                 print(f"❌ Error: {e}")
 
+        # Opción para ver las tareas del usuario
+        elif opcion == "3":
+            pass
+
         elif opcion == "4":
             print("👋 Cerrando sesión...")
+            limpiar_pantalla()
             break
 
         else:
             print("⚠️ Opción no válida. Recuerda introducir un número del 1 al 4.")
+
+# Función para limpiar la pantalla
+def limpiar_pantalla():
+    os.system('cls' if os.name == 'nt' else 'clear')
 
 # codigo principal que ejecuta el programa
 while True:
@@ -110,4 +128,4 @@ while True:
         break
 
     else:
-        print("⚠️ Opción no válida. Recuerda introducir un número del 1 al 5.")
+        print("⚠️ Opción no válida. Recuerda introducir un número del 1 al 4.")
