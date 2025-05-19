@@ -1,131 +1,153 @@
 ###
-# Main.py
+# main.py
+# Esta es la entrada principal del programa.
 ###
+
+import time
+
+import prints.menus as menus
+import validators.validador as validador
+import utils.herramientas as herramientas
 
 from models.usuario import Usuario
 from models.tarea import Tarea
-import storage.csv_reader as lector_csv
-import storage.csv_writer as escritor_csv
-import os, time
 
-# Función para imprimir el menú principal
-def mostrar_menu_principal():
-    print("\n-------- Menú Login --------")
-    print("1. Nuevo usuario")
-    print("2. Iniciar sesión")
-    print("3. Ver usuarios")
-    print("4. Salir")
-    print("----------------------------")
-
-# Función para imprimir el menú de usuario tras iniciar sesión, necesita un objeto de la clase Usuario
-def menu_usuario(usuario: Usuario):
-    limpiar_pantalla()
-
-    while True:
-        print(f"\n👤 Sesión iniciada como: {usuario.nombre} (ID: {usuario.id})")
-        print("1. Ver perfil")
-        print("2. Crear tarea")
-        print("3. Ver tareas")
-        print("4. Cerrar sesión")
-
-        opcion = input("Selecciona una opción (1-4): ").strip()
-
-        # Opción para ver el perfil del usuario
-        if opcion == "1":
-            print(f"\n📄 Perfil de usuario:\nID: {usuario.id}\nNombre: {usuario.nombre}")
-
-        # Opción para crear una tarea
-        elif opcion == "2":
-            try:
-                print("📝 Crear tarea...")
-
-                # Solicitar datos de la tarea y crear una instancia de Tarea
-                titulo = input("Introduce el título de la tarea: ")
-                descripcion = input("Introduce una descripción de la tarea: ")
-
-                repeticion = input("Introduce la repetición de la tarea (diaria, semanal, mensual, unica): ")
-                if repeticion not in ["diaria", "semanal", "mensual", "unica"]:
-                    raise ValueError("Repetición no válida. Debe ser 'diaria', 'semanal', 'mensual' o 'unica'.")
-                
-                tarea_nueva = Tarea(titulo, usuario.id, descripcion, repeticion=repeticion)
-
-                # Guardar la tarea nueva en el archivo CSV
-                escritor_csv.guardar_tarea(tarea_nueva)
-                print(f"✅ Tarea creada: {tarea_nueva.titulo} (ID: {tarea_nueva.id})")
-            
-            except ValueError as e:
-                print(f"❌ Error: {e}")
-
-        # Opción para ver las tareas del usuario
-        elif opcion == "3":
-            pass
-
-        elif opcion == "4":
-            print("👋 Cerrando sesión...")
-            limpiar_pantalla()
-            break
-
-        else:
-            print("⚠️ Opción no válida. Recuerda introducir un número del 1 al 4.")
-
-# Función para limpiar la pantalla
-def limpiar_pantalla():
-    os.system('cls' if os.name == 'nt' else 'clear')
-
-# codigo principal que ejecuta el programa
 while True:
-    # Llamar a la función para mostrar el menú de usuario
-    mostrar_menu_principal()
-    opcion = input("Selecciona una opción (1-4): ").strip()
+    # Llamar a la función de interfaz para mostrar el menú
+    menus.mostrar_menu_inicial()
+    
+    # Pedir al usuario que seleccione una opción
+    opcion = input("Selecciona una opción (0-3): ").strip()
 
-    # Opción para crear un nuevo usuario
+    # Gestionar opción 1 (Nuevo usuario)
     if opcion == "1":
         try:
-            # Crear una instancia de Usuario
-            nombre_usuario = input("Introduce tu nombre de usuario: ")
-            usuario_nuevo = Usuario.crear_nuevo(nombre_usuario)
+            nombre = input("Introduce tu nombre de usuario: ")
+            id = validador.nombre_no_repetido(nombre) # devuelve último id + 1, lanza ValueError si el nombre ya existe
 
-            # Guardar el nuevo usuario en el archivo CSV  
-            escritor_csv.guardar_usuario(usuario_nuevo)
-            print(f"👤 Usuario creado: {usuario_nuevo.nombre} (ID: {usuario_nuevo.id})")
-        
+            nuevo_usuario = Usuario(id, nombre)
+            nuevo_usuario.guardar_nuevo()
+
+            print(f"👤 Usuario creado: {nuevo_usuario.nombre} (ID: {nuevo_usuario.id})")
+
         except ValueError as e:
             print(f"❌ Error: {e}")
 
-    #Opción para iniciar sesión
+    # Gestionar opción 2 (Iniciar sesión)
     elif opcion == "2":
         try:
-            # Crear una instancia de Usuario
-            nombre_usuario = input("Introduce tu nombre de ususario: ")
-            usuario_cargado = Usuario.cargar(nombre_usuario)
+            nombre = input("Introduce tu nombre de usuario: ")
+            usuario_inicio_sesion = validador.usuario_existente(nombre) # devuelve objeto Usuario, lanza ValueError si no existe
 
-            # Imprimir el mensaje de bienvenida
-            print(f"👤 Bienvenido de nuevo, {usuario_cargado.nombre} (ID: {usuario_cargado.id})")
+            herramientas.limpiar_consola() # Limpiar la consola para una mejor visualización
+            print(f"👤 Bienvenido de nuevo, {usuario_inicio_sesion.nombre} (ID: {usuario_inicio_sesion.id})")
+        
+            ###
+            # LÓGICA TRAS INICIAR SESIÓN
+            ###
 
-            # Llamar a la función para mostrar el menú de usuario
-            menu_usuario(usuario_cargado)
+            while True:
+                menus.mostrar_menu_usuario()
+
+                # Pedir al usuario que seleccione una opción
+                opcion = input("Selecciona una opción (0-5): ").strip()
+
+                # Gestionar opcion 1 (Crear tarea)
+                if opcion == "1":
+                    try:
+                        # Obtener los parametros de la tarea introducidos por el usuario
+                        nombre_tarea = input("Introduce el nombre de la tarea: ")
+                        descripcion = input("Introduce una descripción (opcional): ")
+                        repeticion = input("¿La tarea se repite? (diaria/semanal/mensual/unica): ").strip().lower()
+                        if repeticion not in ["diaria", "semanal", "mensual", "unica"]:
+                            raise ValueError("Repetición no válida. Debe ser 'diaria', 'semanal', 'mensual' o 'unica'.")
+                        
+                        # Generar id
+                        id = validador.generar_id_tarea()
+
+                        nueva_tarea = Tarea(id, nombre_tarea, usuario_inicio_sesion.id, descripcion, repeticion=repeticion)
+                        nueva_tarea.guardar_nueva()
+
+                        print(f"✅ Tarea creada: {nueva_tarea.titulo} (ID: {nueva_tarea.id})")
+
+                    except ValueError as e:
+                        print(f"❌ Error: {e}")
+
+                # Gestionar opcion 2 (Ver tareas)
+                elif opcion == "2":
+                    try:
+                        lista_tareas_usuario = validador.hay_tareas_usuario(usuario_inicio_sesion.id) # devuelve lista de tareas del usuario, lanza ValueError si no hay tareas para ese usuario
+                        
+                        print("\n📝 Lista de tareas:")
+                        for tarea in lista_tareas_usuario:
+                            print(f"\t·📄 {tarea.titulo}: {tarea.descripcion} (ID: {tarea.id}). Tarea {tarea.repeticion}({tarea.fecha}), Completada: {tarea.completada} - {tarea.fecha_completada}")
+
+                    except ValueError as e:
+                        print(f"❌ Error: {e}")
+
+                # Gestionar opcion 3 (Ver tareas completadas)
+                elif opcion == "3":
+                    try:
+                        lista_tareas_completadas = validador.hay_tareas_completadas_usuario(usuario_inicio_sesion.id) # devuelve lista de tareas completadas del usuario, lanza ValueError si no hay tareas completadas para ese usuario
+                        
+                        print("\n✅ Lista de tareas completadas:")
+                        for tarea in lista_tareas_completadas:
+                            print(f"\t·📄 {tarea.titulo}: {tarea.descripcion} (ID: {tarea.id}). Tarea {tarea.repeticion}({tarea.fecha}), Completada: {tarea.completada} - {tarea.fecha_completada}")
+                    
+                    except ValueError as e:
+                        print(f"❌ Error: {e}")
+
+                # Gestionar opcion 4 (Ver tareas pendientes)
+                elif opcion == "4":
+                    try:
+                        lista_tareas_pendientes = validador.hay_tareas_pendientes_usuario(usuario_inicio_sesion.id) # devuelve lista de tareas pendientes del usuario, lanza ValueError si no hay tareas pendientes para ese usuario
+
+                        print("\n📝 Lista de tareas pendientes:")
+                        for tarea in lista_tareas_pendientes:
+                            print(f"\t·📄 {tarea.titulo}: {tarea.descripcion} (ID: {tarea.id}). Tarea {tarea.repeticion}({tarea.fecha}), Completada: {tarea.completada} - {tarea.fecha_completada}")
+
+                    except ValueError as e:
+                        print(f"❌ Error: {e}")
+
+                # Gestionar opcion 5 (Ver tareas para hoy)
+                elif opcion == "5":
+                    try:
+                        pass
+                    
+                    except ValueError as e:
+                        print(f"❌ Error: {e}")
+
+                # Gestionar opción 0 (volver al menú principal)
+                elif opcion == "0":
+                    print("👋 Volviendo al menú principal...")
+                    time.sleep(1.5)
+                    herramientas.limpiar_consola()
+                    break
+
+                # Gestionar otras opciones
+                else:
+                    print("⚠️ Opción no válida. Recuerda introducir un número del 0 al 6.")
 
         except ValueError as e:
             print(f"❌ Error: {e}")
 
-    # Opción para ver un listado de todos los usuarios, en caso de que no haya ninguno, se muestra un mensaje
+    # Gestionar opción 3 (Ver usuarios)
     elif opcion == "3":
-        usuarios = lector_csv.obtener_usuarios()
+        try:
+            lista_usuarios = validador.hay_usuarios() # devuelve lista de usuarios, lanza ValueError si no hay usuarios
 
-        # Verifica si hay usuarios registrados
-        if usuarios is None:
-            print("❌ No hay usuarios registrados.")
-            continue
-        
-        # Imprimir la lista de usuarios
-        print("\n👥 Lista de usuarios registrados:")
-        for usuario in usuarios:
-            print(f"\t·👤 Usuario: {usuario['nombre']} (ID: {usuario['id']})")
+            print("\n👥 Lista de usuarios:")
+            for usuario in lista_usuarios:
+                print(f"\t·👤 Usuario: {usuario.nombre} (ID: {usuario.id})")
+                
+        except ValueError as e:
+            print(f"❌ Error: {e}")              
 
-    # Opción salir del programa
-    elif opcion == "4":
+    # Gestionar opción 0 (Salir)
+    elif opcion == "0":
         print("👋 Saliendo del programa...")
         break
 
+    # Gestionar otras opciones
     else:
-        print("⚠️ Opción no válida. Recuerda introducir un número del 1 al 4.")
+        print("⚠️ Opción no válida. Recuerda introducir un número del 0 al 3.")
